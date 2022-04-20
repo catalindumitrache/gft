@@ -16,6 +16,7 @@ public class AccountsRepositoryInMemory implements AccountsRepository {
   @Override
   public void createAccount(Account account) throws DuplicateAccountIdException {
     Account previousAccount = accounts.putIfAbsent(account.getAccountId(), account);
+
     if (previousAccount != null) {
       throw new DuplicateAccountIdException(
         "Account id " + account.getAccountId() + " already exists!");
@@ -24,13 +25,12 @@ public class AccountsRepositoryInMemory implements AccountsRepository {
 
   @Override
   public void updateAccount(Account account) throws NotAValidAccountException {
-    Account dbAccount = getAccount(account.getAccountId());
-    if(dbAccount==null){
-      throw new NotAValidAccountException(
-              "Account id " + account.getAccountId() + " is not a valid account!"
-      );
-    }
-    accounts.put(account.getAccountId(), account);
+    accounts.compute(account.getAccountId(), (k, v) -> {
+      if(v == null) {
+        throw new NotAValidAccountException("Account id " + account.getAccountId() + " is not a valid account!");
+      }
+        return account;
+    });
   }
 
   @Override

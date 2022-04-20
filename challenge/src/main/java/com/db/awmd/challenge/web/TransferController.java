@@ -3,6 +3,8 @@ package com.db.awmd.challenge.web;
 import com.db.awmd.challenge.domain.Transfer;
 import com.db.awmd.challenge.exception.NotAValidAccountException;
 import com.db.awmd.challenge.exception.NotEnoughFundsException;
+import com.db.awmd.challenge.exception.SameAccountException;
+import com.db.awmd.challenge.exception.ZeroAmountException;
 import com.db.awmd.challenge.service.ITransferService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,11 +33,8 @@ public class TransferController {
     try {
       this.transferService.transfer(transfer);
     }
-    catch(NotAValidAccountException | NotEnoughFundsException exception){
+    catch(NotAValidAccountException | NotEnoughFundsException | SameAccountException | ZeroAmountException exception){
       return new ResponseEntity<>(exception.getMessage(), HttpStatus.BAD_REQUEST);
-    }
-    catch (InterruptedException interruptedException){
-      return new ResponseEntity<>(interruptedException.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
     return new ResponseEntity<>(HttpStatus.OK);

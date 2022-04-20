@@ -28,8 +28,8 @@ public class TransferService implements ITransferService {
 
     @Async
     @Override
-    public CompletableFuture<Transfer> transfer(Transfer transfer) throws
-            NotEnoughFundsException  {
+    public Transfer transfer(Transfer transfer) throws
+            NotEnoughFundsException, SameAccountException, ZeroAmountException  {
         Account fromAccount = accountsService.getAccount(transfer.getAccountFromId());
         Account toAccount = accountsService.getAccount(transfer.getAccountToId());
 
@@ -48,16 +48,16 @@ public class TransferService implements ITransferService {
             notificationService.notifyAboutTransfer(toAccount,"Received " + transfer.getAmount() +
                     " from account: " + transfer.getAccountFromId());
         } else if (fromRemainingBalance.compareTo(BigDecimal.ZERO) < 0){
-            return CompletableFuture.failedFuture(new NotEnoughFundsException("Not enough funds! " +
+            throw new NotEnoughFundsException("Not enough funds! " +
                     "Available funds: " + fromAccount.getBalance() +
-                    " Transfer amount: " + transfer.getAmount()));
+                    " Transfer amount: " + transfer.getAmount());
         } else if (transfer.getAccountFromId().equals(transfer.getAccountToId())) {
-            return CompletableFuture.failedFuture(new SameAccountException("Both accounts cannot be the same! " + fromAccount.getAccountId()));
+            throw new SameAccountException("Both accounts cannot be the same! " + fromAccount.getAccountId());
         } else if (transfer.getAmount().compareTo(BigDecimal.ZERO) <= 0) {
-            return CompletableFuture.failedFuture(new ZeroAmountException("Amount to transfer cannot be 0"));
+            throw new ZeroAmountException("Amount to transfer cannot be 0");
         }
 
-        return CompletableFuture.completedFuture(transfer);
+        return transfer;
 
     }
 }
