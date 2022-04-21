@@ -81,7 +81,18 @@ public class TransferServiceTest {
 
   @Test
   public void transferSameAccount() throws Exception {
-    Transfer transfer = new Transfer("1", "21", BigDecimal.valueOf(100));
+    Transfer transfer = new Transfer("1", "1", BigDecimal.valueOf(100));
+
+    doNothing().when(notificationService).notifyAboutTransfer(any(),any());
+
+    this.transferService.transfer(transfer);
+    Thread.sleep(1000);
+    assertThat(this.accountsService.getAccount("1").getBalance()).isEqualTo(BigDecimal.valueOf(1000));
+  }
+
+  @Test
+  public void transferNonExistentAccount() throws Exception {
+    Transfer transfer = new Transfer("1", "15", BigDecimal.valueOf(100));
 
     doNothing().when(notificationService).notifyAboutTransfer(any(),any());
 
