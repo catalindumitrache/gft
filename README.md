@@ -9,6 +9,8 @@
 * Changing to a real DB.
 * Improving Logging.
 * Saving in DB the transfer history.
+* Further Javadoc documentation for all methods.
+* Better error handling
 
 ## Improvements that could be added to make this application production ready:
 
@@ -18,3 +20,4 @@
 * Dockerization for easier deployment
 * SonarLint with rules for developing cleaner code
 * Implement monitoring tools such as Actuator
+* Addition of Swagger service for endpoint validation

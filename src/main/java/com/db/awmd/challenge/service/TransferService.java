@@ -7,7 +7,6 @@ import com.db.awmd.challenge.exception.NotEnoughFundsException;
 import com.db.awmd.challenge.exception.SameAccountException;
 import com.db.awmd.challenge.exception.ZeroAmountException;
 import com.db.awmd.challenge.repository.AccountsRepository;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -27,14 +26,23 @@ public class TransferService implements ITransferService {
         this.notificationService = emailNotificationService;
     }
 
-    @Async
+    /**
+     * Transfer an amount of money from one account to another
+     * @param transfer - containing the source account, the destination account and the amount to transfer
+     *
+     * @throws NotEnoughFundsException if there are not enough funds in the source account
+     * @throws SameAccountException if both accounts are the same
+     * @throws ZeroAmountException if the amount to transfer = 0
+     */
     @Override
-    public Transfer transfer(Transfer transfer) throws
-            NotEnoughFundsException, SameAccountException, ZeroAmountException  {
+    public void transfer(Transfer transfer) throws
+            NotEnoughFundsException, SameAccountException, ZeroAmountException, NotAValidAccountException  {
         Account fromAccount = accountsService.getAccount(transfer.getAccountFromId());
         Account toAccount = accountsService.getAccount(transfer.getAccountToId());
 
-        if(!Objects.isNull(fromAccount) && !Objects.isNull(toAccount) && !transfer.getAccountFromId().equals(transfer.getAccountToId())) {
+        if(!Objects.isNull(fromAccount) && !Objects.isNull(toAccount) &&
+                transfer.getAmount().compareTo(BigDecimal.ZERO) != 0 &&
+                !transfer.getAccountFromId().equals(transfer.getAccountToId())) {
             accountsRepository.updateAccount(transfer.getAccountFromId(), BigDecimal.ZERO.subtract(transfer.getAmount()));
             accountsRepository.updateAccount(transfer.getAccountToId(), transfer.getAmount());
 
@@ -45,15 +53,14 @@ public class TransferService implements ITransferService {
 
         } else if (transfer.getAccountFromId().equals(transfer.getAccountToId())) {
             throw new SameAccountException("Both accounts cannot be the same! " + fromAccount.getAccountId());
-        } else if (transfer.getAmount().compareTo(BigDecimal.ZERO) <= 0) {
+        } else if (transfer.getAmount().compareTo(BigDecimal.ZERO) == 0) {
             throw new ZeroAmountException("Amount to transfer cannot be 0!");
         } else if (Objects.isNull(fromAccount)) {
-            throw new NotAValidAccountException("Account " + fromAccount.getAccountId() + " is not a valid account!");
+            throw new NotAValidAccountException("Account " + transfer.getAccountFromId() + " is not a valid account!");
         } else if (Objects.isNull(toAccount)) {
-            throw new NotAValidAccountException("Account " + toAccount.getAccountId() + " is not a valid account!");
+            throw new NotAValidAccountException("Account " + transfer.getAccountToId() + " is not a valid account!");
         }
 
-        return transfer;
     }
 
 }

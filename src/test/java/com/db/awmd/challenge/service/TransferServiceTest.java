@@ -2,7 +2,7 @@ package com.db.awmd.challenge.service;
 
 import com.db.awmd.challenge.domain.Account;
 import com.db.awmd.challenge.domain.Transfer;
-import com.db.awmd.challenge.exception.DuplicateAccountIdException;
+import com.db.awmd.challenge.exception.*;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -14,7 +14,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 import java.math.BigDecimal;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.doNothing;
 
@@ -46,58 +46,98 @@ public class TransferServiceTest {
   }
 
   @Test
-  public void transferCorrectly() throws Exception {
+  public void transferCorrectly() {
     Transfer transfer = new Transfer("1", "2", BigDecimal.valueOf(100));
 
     doNothing().when(notificationService).notifyAboutTransfer(any(),any());
 
     this.transferService.transfer(transfer);
-    Thread.sleep(1000);
+
     assertThat(this.accountsService.getAccount("1").getBalance()).isEqualTo(BigDecimal.valueOf(900));
   }
 
-  @Test
+  @Test(expected = ZeroAmountException.class)
   public void transferZero() throws Exception {
-    Transfer transfer = new Transfer("1", "2", BigDecimal.valueOf(0));
+    Transfer transfer = new Transfer("1", "2", BigDecimal.ZERO);
 
     doNothing().when(notificationService).notifyAboutTransfer(any(),any());
 
     this.transferService.transfer(transfer);
-    Thread.sleep(1000);
-    assertThat(this.accountsService.getAccount("1").getBalance()).isEqualTo(BigDecimal.valueOf(1000));
   }
 
 
-  @Test
+  @Test(expected = NotEnoughFundsException.class)
   public void transferMore() throws Exception {
     Transfer transfer = new Transfer("1", "2", BigDecimal.valueOf(5000));
 
     doNothing().when(notificationService).notifyAboutTransfer(any(),any());
 
     this.transferService.transfer(transfer);
-    Thread.sleep(1000);
-    assertThat(this.accountsService.getAccount("1").getBalance()).isEqualTo(BigDecimal.valueOf(1000));
   }
 
-  @Test
+  @Test(expected = SameAccountException.class)
   public void transferSameAccount() throws Exception {
     Transfer transfer = new Transfer("1", "1", BigDecimal.valueOf(100));
 
     doNothing().when(notificationService).notifyAboutTransfer(any(),any());
 
     this.transferService.transfer(transfer);
-    Thread.sleep(1000);
-    assertThat(this.accountsService.getAccount("1").getBalance()).isEqualTo(BigDecimal.valueOf(1000));
   }
 
-  @Test
+  @Test(expected = NotAValidAccountException.class)
   public void transferNonExistentAccount() throws Exception {
     Transfer transfer = new Transfer("1", "15", BigDecimal.valueOf(100));
 
     doNothing().when(notificationService).notifyAboutTransfer(any(),any());
 
     this.transferService.transfer(transfer);
-    Thread.sleep(1000);
-    assertThat(this.accountsService.getAccount("1").getBalance()).isEqualTo(BigDecimal.valueOf(1000));
+  }
+
+  @Test
+  public void deadlockOnlyOneTransferSuccessfulTest () throws InterruptedException {
+
+    Transfer transfer1 = new Transfer("1", "2", BigDecimal.valueOf(600));
+    Transfer transfer2 = new Transfer("1", "2", BigDecimal.valueOf(600));
+
+    doNothing().when(notificationService).notifyAboutTransfer(any(),any());
+
+    Thread t1 = new Thread(() -> {
+      this.transferService.transfer(transfer1);
+    });
+
+    Thread t2 = new Thread(() -> {
+      this.transferService.transfer(transfer2);
+    });
+
+    t1.start();
+    t2.start();
+
+    Thread.sleep(5000); // Wait until both threads have a chance to finish
+
+    assertThat(this.accountsService.getAccount("1").getBalance()).isEqualTo(BigDecimal.valueOf(400));
+  }
+
+  @Test
+  public void deadlockBothTransferSuccessfulTest () throws InterruptedException {
+
+    Transfer transfer1 = new Transfer("1", "2", BigDecimal.valueOf(400));
+    Transfer transfer2 = new Transfer("1", "2", BigDecimal.valueOf(400));
+
+    doNothing().when(notificationService).notifyAboutTransfer(any(),any());
+
+    Thread t1 = new Thread(() -> {
+      this.transferService.transfer(transfer1);
+    });
+
+    Thread t2 = new Thread(() -> {
+      this.transferService.transfer(transfer2);
+    });
+
+    t1.start();
+    t2.start();
+
+    Thread.sleep(5000); // Wait until both threads have a chance to finish
+
+    assertThat(this.accountsService.getAccount("1").getBalance()).isEqualTo(BigDecimal.valueOf(200));
   }
 }

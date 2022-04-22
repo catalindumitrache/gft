@@ -43,7 +43,8 @@ public class AccountsRepositoryInMemory implements AccountsRepository {
    * @throws NotAValidAccountException if the account is not found in the available accounts
    */
   @Override
-  public void updateAccount(String accountId, BigDecimal amount) throws NotAValidAccountException {
+  public void updateAccount(String accountId, BigDecimal amount)
+          throws NotAValidAccountException, NotEnoughFundsException {
     accounts.compute(accountId, (k, v) -> {
       if(v == null) {
         throw new NotAValidAccountException("Account id " + accountId + " is not a valid account!");
@@ -52,7 +53,7 @@ public class AccountsRepositoryInMemory implements AccountsRepository {
       if(v.getBalance().compareTo(amount.abs()) < 0 && amount.compareTo(BigDecimal.ZERO)<0){
         throw new NotEnoughFundsException("Not enough funds! " +
                 "Available funds: " + v.getBalance() +
-                " Transfer amount: " + amount);
+                " Transfer amount: " + amount.abs());
       }
 
       v.setBalance(v.getBalance().add(amount));

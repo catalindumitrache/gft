@@ -1,10 +1,10 @@
 package com.db.awmd.challenge.controller;
 
 import com.db.awmd.challenge.domain.Account;
+import com.db.awmd.challenge.exception.NotAValidAccountException;
+import com.db.awmd.challenge.exception.NotEnoughFundsException;
 import com.db.awmd.challenge.service.AccountsService;
-import com.db.awmd.challenge.service.ITransferService;
 import com.db.awmd.challenge.service.NotificationService;
-import com.db.awmd.challenge.service.TransferService;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -17,13 +17,12 @@ import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.context.WebApplicationContext;
 
-import java.math.BigDecimal;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.doNothing;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.setup.MockMvcBuilders.webAppContextSetup;
 
@@ -79,25 +78,21 @@ public class TransferControllerTest {
   public void transferWithInsufficientFunds() throws Exception {
     doNothing().when(notificationService).notifyAboutTransfer(any(),any());
 
-    this.mockMvc.perform(put("/v1/transfers").contentType(MediaType.APPLICATION_JSON)
-            .content("{\"accountFromId\":\"Id-1\",\"accountToId\":\"Id-2\",\"amount\":1100}")).andExpect(status().isOk());
-
-    Thread.sleep(1000);
-
-    Account account1 = accountsService.getAccount("Id-1");
-    assertThat(account1.getBalance()).isEqualByComparingTo("1000");
-    Account account2 = accountsService.getAccount("Id-2");
-    assertThat(account2.getBalance()).isEqualByComparingTo("2000");
+    this.mockMvc.perform(put("/v1/transfers")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content("{\"accountFromId\":\"Id-1\",\"accountToId\":\"Id-2\",\"amount\":1100}"))
+            .andExpect(status().isBadRequest())
+            .andReturn();
   }
 
   @Test
-  public void transferNonExistentAccount() throws Exception {
+  public void transferNonExistentAccount() throws Exception{
     doNothing().when(notificationService).notifyAboutTransfer(any(),any());
 
-    this.mockMvc.perform(put("/v1/transfers").contentType(MediaType.APPLICATION_JSON)
-            .content("{\"accountFromId\":\"Id-3\",\"accountToId\":\"Id-2\",\"amount\":1100}")).andExpect(status().isOk());
-
-    Thread.sleep(1000);
+    this.mockMvc.perform(put("/v1/transfers")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content("{\"accountFromId\":\"Id-3\",\"accountToId\":\"Id-2\",\"amount\":1100}"))
+            .andExpect(status().isBadRequest());
 
     Account account1 = accountsService.getAccount("Id-1");
     assertThat(account1.getBalance()).isEqualByComparingTo("1000");
